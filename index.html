@@ -1,0 +1,1955 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Ejecutivo - Rentabilidad por Producto | Inlaca Disgaven</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50:'#eeeef9',100:'#d4d4ee',200:'#a8a8dd',300:'#7c7ccc',
+                            400:'#5050bb',500:'#1D1D72',600:'#181860',700:'#13134e',
+                            800:'#0e0e3c',900:'#09092a',
+                        },
+                        accent: {
+                            50:'#fdecee',100:'#fbd0d4',200:'#f7a1a8',300:'#f3727d',
+                            400:'#ef4351',500:'#E31D2D',600:'#c41726',700:'#a5121f',
+                            800:'#860e18',900:'#670a11',
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .glass-card { background:#fff; border:1px solid #e2e8f0; box-shadow:0 1px 2px 0 rgba(0,0,0,0.03); position: relative; }
+        .glass-card:hover { box-shadow:0 4px 6px -1px rgba(0,0,0,0.06); }
+        .scrollbar-thin::-webkit-scrollbar { height:6px; width:6px; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background:#f1f5f9; }
+        .badge-a { background:#d4d4ee; color:#13134e; border:1px solid #7c7ccc; }
+        .badge-b { background:#fef3c7; color:#92400e; border:1px solid #fcd34d; }
+        .badge-c { background:#fbd0d4; color:#860e18; border:1px solid #f7a1a8; }
+        .header-gradient { background:linear-gradient(135deg,#0e0e3c 0%,#1D1D72 55%,#E31D2D 100%); }
+        .divider-exec { height:3px; background:linear-gradient(90deg,#1D1D72 0%,#E31D2D 50%,#1D1D72 100%); }
+        .logo-container { background:#fff; border-radius:8px; padding:6px 12px; display:flex; align-items:center; justify-content:center; min-width:150px; height:54px; box-shadow:0 2px 6px rgba(0,0,0,0.15); }
+        .filter-chip { display:inline-flex; align-items:center; gap:6px; background:#eeeef9; color:#13134e; border:1px solid #a8a8dd; padding:4px 10px; border-radius:9999px; font-size:10px; font-weight:600; }
+        .filter-chip button { color:#E31D2D; }
+        .filter-chip button:hover { color:#a5121f; }
+        .nav-tab { transition:all .15s ease; }
+        .nav-tab.active { background:#1D1D72; color:#fff; }
+        .abc-filter-btn { transition:all .15s ease; }
+        .abc-filter-btn.active { background:#1D1D72; color:#fff; border-color:#1D1D72; }
+
+        /* FOCUS MODE */
+        .focus-trigger {
+            position: absolute; top: 8px; right: 8px; z-index: 20;
+            opacity: 0; pointer-events: none;
+            transform: translateY(-4px);
+            transition: opacity .18s ease, transform .18s ease;
+            background: #1D1D72; color: #fff; border: none;
+            width: 26px; height: 26px; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: 0 2px 6px rgba(29,29,114,0.35);
+            font-size: 11px;
+        }
+        .focus-trigger:hover { background: #13134e; transform: scale(1.06); }
+        .focus-host:hover > .focus-trigger,
+        .glass-card:hover > .focus-trigger,
+        .focus-trigger:focus { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+        .focus-modal {
+            position: fixed; inset: 0; z-index: 9999;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(3px);
+            display: none; align-items: center; justify-content: center;
+            padding: 20px; animation: fadeIn .2s ease;
+        }
+        .focus-modal.open { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .focus-modal-inner {
+            background: #fff; border-radius: 12px;
+            width: 100%; height: 100%;
+            max-width: 1400px; max-height: 92vh;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            animation: scaleIn .22s ease;
+        }
+        @keyframes scaleIn { from { transform: scale(.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .focus-modal-header {
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #0e0e3c 0%, #1D1D72 100%);
+            color: #fff; display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 3px solid #E31D2D; flex-shrink: 0;
+        }
+        .focus-modal-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .focus-modal-close {
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff; width: 30px; height: 30px; border-radius: 6px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: background .15s;
+        }
+        .focus-modal-close:hover { background: #E31D2D; }
+        .focus-modal-body { flex: 1; padding: 20px; overflow: auto; background: #f8fafc; }
+        .focus-modal-body .focus-table-scroll {
+            max-height: calc(92vh - 200px);
+            overflow-y: auto; overflow-x: auto;
+        }
+        .focus-modal-body .focus-table-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+        .focus-modal-body .focus-table-scroll::-webkit-scrollbar-thumb { background:#94a3b8; border-radius:5px; }
+        .focus-modal-body .focus-table-scroll::-webkit-scrollbar-track { background:#e2e8f0; }
+        .focus-modal-body table { font-size: 12px; }
+        .focus-modal-body table thead th { position: sticky; top: 0; z-index: 2; }
+        .focus-modal-body .focus-host-clone { background: #fff; border-radius: 8px; padding: 16px; height: 100%; }
+
+        /* Modal importación */
+        .import-modal {
+            position: fixed; inset: 0; z-index: 10000;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(3px);
+            display: none; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .import-modal.open { display: flex; }
+        .import-inner {
+            background: #fff; border-radius: 12px;
+            width: 100%; max-width: 600px;
+            max-height: 90vh; overflow: auto;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+        .drop-zone {
+            border: 2px dashed #a8a8dd;
+            background: #f8f8fe;
+            transition: all .2s ease;
+            cursor: pointer;
+        }
+        .drop-zone.dragover {
+            border-color: #1D1D72;
+            background: #eeeef9;
+            transform: scale(1.01);
+        }
+        .drop-zone:hover { border-color: #5050bb; background: #f0f0fb; }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen">
+
+    <!-- ============================== HEADER ============================== -->
+    <header class="header-gradient text-white sticky top-0 z-50 shadow-lg">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="logo-container">
+                        <img
+                            src="https://disgaven.com.ve/wp-content/uploads/2021/05/Logo-Inlaca-Disgaven.png"
+                            alt="Logo Inlaca Disgaven"
+                            class="h-10 w-auto object-contain"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        >
+                        <div style="display:none;" class="items-center gap-2">
+                            <i class="fa-solid fa-droplet text-brand-500 text-2xl"></i>
+                            <div class="leading-tight">
+                                <div class="text-brand-700 font-extrabold text-sm">INLACA</div>
+                                <div class="text-accent-500 font-bold text-[10px] tracking-wider">DISGAVEN</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="border-l border-white/20 pl-4">
+                        <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white">Tablero Ejecutivo de Rentabilidad</h1>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-md border border-white/20 text-xs">
+                        <span class="text-white/60 block text-[9px] uppercase font-semibold tracking-wider">Período</span>
+                        <span class="font-medium text-white"><i class="fa-regular fa-calendar mr-1 text-accent-300"></i> Octubre 2024</span>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-md border border-white/20 text-xs">
+                        <span class="text-white/60 block text-[9px] uppercase font-semibold tracking-wider">Margen Global</span>
+                        <span class="font-bold text-sm text-accent-300" id="globalMarginBadge">—</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="divider-exec"></div>
+    </header>
+
+    <!-- ============================== BARRA DE FILTROS + IMPORTACIÓN ============================== -->
+    <div class="bg-white border-b border-slate-200 sticky top-[76px] z-40 shadow-sm">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div class="flex flex-col lg:flex-row items-start lg:items-center gap-3">
+                <div class="flex items-center gap-2 shrink-0">
+                    <i class="fa-solid fa-filter text-brand-500 text-sm"></i>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-600">Filtros:</span>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 flex-1">
+                    <select id="filterEmpresa" class="text-[11px] border border-slate-200 rounded-md px-2.5 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[160px]">
+                        <option value="">🏢 Todas las Empresas</option>
+                    </select>
+                    <select id="filterCategoria" class="text-[11px] border border-slate-200 rounded-md px-2.5 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[170px]">
+                        <option value="">📦 Todas las Categorías</option>
+                    </select>
+                    <select id="filterPlanta" class="text-[11px] border border-slate-200 rounded-md px-2.5 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[170px]">
+                        <option value="">🏭 Todas las Plantas</option>
+                    </select>
+                    <div class="relative flex-1 min-w-[180px]">
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]"></i>
+                        <input type="text" id="filterBusqueda" placeholder="Buscar SKU..."
+                            class="w-full text-[11px] border border-slate-200 rounded-md pl-7 pr-2.5 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                    <span class="text-[11px] text-slate-500">
+                        <strong id="filterCount" class="text-brand-600">0</strong> SKUs visibles
+                    </span>
+                    <button onclick="abrirImportador()" class="text-[10px] bg-brand-500 hover:bg-brand-600 text-white font-semibold px-3 py-1.5 rounded-md transition-colors">
+                        <i class="fa-solid fa-file-import mr-1"></i> Importar Excel/CSV
+                    </button>
+                    <button onclick="resetFiltros()" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold px-2.5 py-1.5 rounded-md transition-colors">
+                        <i class="fa-solid fa-rotate-left mr-1"></i> Limpiar
+                    </button>
+                </div>
+            </div>
+
+            <div id="activeFilters" class="flex flex-wrap gap-2 mt-2 empty:mt-0"></div>
+
+            <div id="dataSourceBanner" class="mt-2 flex items-center gap-2 text-[10px] text-slate-500">
+                <i class="fa-solid fa-circle-info text-brand-500"></i>
+                <span id="dataSourceText">Cargando datos de ejemplo... Importa tu archivo Excel/CSV para usar datos reales.</span>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- ============================== SECCIÓN 1: KPIs ============================== -->
+        <section>
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2 uppercase tracking-wide">
+                    <span class="w-1 h-4 bg-brand-500 rounded"></span>
+                    1. Resumen Ejecutivo del Portafolio
+                </h2>
+                <span class="text-[10px] text-slate-500 font-medium bg-slate-100 border border-slate-200 px-2.5 py-1 rounded uppercase tracking-wider" id="kpiScope">Vista global</span>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div class="glass-card rounded-lg p-4 border-l-4 border-l-brand-500 focus-host" data-focus-title="Ingresos Totales">
+                    <button class="focus-trigger" onclick="openFocus(event, this)" title="Modo enfoque"><i class="fa-solid fa-expand"></i></button>
+                    <div class="flex justify-between items-start">
+                        <div class="min-w-0">
+                            <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Ingresos Totales</p>
+                            <h3 class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1 truncate" id="kpiIngresos">—</h3>
+                        </div>
+                        <span class="p-2 bg-brand-50 text-brand-600 rounded shrink-0"><i class="fa-solid fa-sack-dollar"></i></span>
+                    </div>
+                    <p class="mt-2 text-[10px] text-slate-500 truncate" id="kpiIngresosSub">—</p>
+                </div>
+
+                <div class="glass-card rounded-lg p-4 border-l-4 border-l-accent-500 focus-host" data-focus-title="Utilidad Bruta">
+                    <button class="focus-trigger" onclick="openFocus(event, this)" title="Modo enfoque"><i class="fa-solid fa-expand"></i></button>
+                    <div class="flex justify-between items-start">
+                        <div class="min-w-0">
+                            <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Utilidad Bruta</p>
+                            <h3 class="text-xl sm:text-2xl font-extrabold text-accent-500 mt-1 truncate" id="kpiUtilidad">—</h3>
+                        </div>
+                        <span class="p-2 bg-accent-50 text-accent-500 rounded shrink-0"><i class="fa-solid fa-coins"></i></span>
+                    </div>
+                    <p class="mt-2 text-[10px] text-slate-500 truncate" id="kpiUtilidadSub">—</p>
+                </div>
+
+                <div class="glass-card rounded-lg p-4 border-l-4 border-l-brand-400 focus-host" data-focus-title="Margen Bruto %">
+                    <button class="focus-trigger" onclick="openFocus(event, this)" title="Modo enfoque"><i class="fa-solid fa-expand"></i></button>
+                    <div class="flex justify-between items-start">
+                        <div class="min-w-0">
+                            <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Margen Bruto %</p>
+                            <h3 class="text-xl sm:text-2xl font-extrabold text-brand-500 mt-1 truncate" id="kpiMargen">—</h3>
+                        </div>
+                        <span class="p-2 bg-brand-50 text-brand-500 rounded shrink-0"><i class="fa-solid fa-percent"></i></span>
+                    </div>
+                    <p class="mt-2 text-[10px] text-slate-500 truncate" id="kpiMargenSub">—</p>
+                </div>
+
+                <div class="glass-card rounded-lg p-4 border-l-4 border-l-slate-400 focus-host" data-focus-title="Productos en Pérdida">
+                    <button class="focus-trigger" onclick="openFocus(event, this)" title="Modo enfoque"><i class="fa-solid fa-expand"></i></button>
+                    <div class="flex justify-between items-start">
+                        <div class="min-w-0">
+                            <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">En Pérdida</p>
+                            <h3 class="text-xl sm:text-2xl font-extrabold text-slate-700 mt-1 truncate" id="kpiPerdida">—</h3>
+                        </div>
+                        <span class="p-2 bg-slate-100 text-slate-600 rounded shrink-0"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                    </div>
+                    <p class="mt-2 text-[10px] text-slate-500 truncate" id="kpiPerdidaSub">—</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+                <div class="glass-card rounded-lg p-3 flex items-center gap-2 focus-host" data-focus-title="Top SKU">
+                    <button class="focus-trigger" onclick="openFocus(event, this)" title="Modo enfoque"><i class="fa-solid fa-expand"></i></button>
+                    <div class="p-2 bg-brand-50 text-brand-500 rounded shrink-0"><i class="fa-solid fa-trophy text-xs"></i></div>
+                    <div class="min-w-0">
+                        <p class="text-[9px] uppercase font-semibold text-slate-500 tracking-wider">Top SKU</p>
+                        <p class="text-[11px] font-bold text-slate-800 truncate" id="kpiTopProduct">—</p>
+                    </div>
+                </div>
+                <div class="glass-card rounded-lg p-3 flex items-center gap-2 focus-host" data-focus-title="Bottom SKU">
+                    <button class="focus-trigger" onclick="openFocus(event, this)" title="Modo enfoque"><i class="fa-solid fa-expand"></i></button>
+                    <div class="p-2 bg-accent-50 text-accent-500 rounded shrink-0"><i class="fa-solid fa-arrow-down text-xs"></i></div>
+                    <div class="min-w-0">
+                        <p class="text-[9px] uppercase font-semibold text-slate-500 tracking-wider">Bottom SKU</p>
+                        <p class="text-[11px] font-bold text-slate-800 truncate" id="kpiWorstProduct">—</p>
+                    </div>
+                </div>
+                <div class="glass-card rounded-lg p-3 flex items-center gap-2 focus-host" data-focus-title="Punto de Equilibrio Global">
+                    <button class="focus-trigger" onclick="openFocus(event, this)" title="Modo enfoque"><i class="fa-solid fa-expand"></i></button>
+                    <div class="p-2 bg-brand-50 text-brand-500 rounded shrink-0"><i class="fa-solid fa-scale-balanced text-xs"></i></div>
+                    <div class="min-w-0">
+                        <p class="text-[9px] uppercase font-semibold text-slate-500 tracking-wider">PE Global</p>
+                        <p class="text-[11px] font-bold text-slate-800 truncate" id="kpiPE">—</p>
+                    </div>
+                </div>
+                <div class="glass-card rounded-lg p-3 flex items-center gap-2 focus-host" data-focus-title="Concentración Top 5">
+                    <button class="focus-trigger" onclick="openFocus(event, this)" title="Modo enfoque"><i class="fa-solid fa-expand"></i></button>
+                    <div class="p-2 bg-accent-50 text-accent-500 rounded shrink-0"><i class="fa-solid fa-layer-group text-xs"></i></div>
+                    <div class="min-w-0">
+                        <p class="text-[9px] uppercase font-semibold text-slate-500 tracking-wider">Concentración Top 5</p>
+                        <p class="text-[11px] font-bold text-slate-800 truncate" id="kpiConcentracion">—</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================== SECCIÓN 2: VISTAS AGREGADAS ============================== -->
+        <section>
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2 uppercase tracking-wide">
+                    <span class="w-1 h-4 bg-brand-500 rounded"></span>
+                    2. Análisis Agregado por Dimensión
+                </h2>
+                <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-md text-[11px]">
+                    <button id="tabEmpresa" onclick="setVistaAgregada('empresa')" class="nav-tab active px-3 py-1 rounded font-semibold">Empresa</button>
+                    <button id="tabCategoria" onclick="setVistaAgregada('categoria')" class="nav-tab px-3 py-1 rounded font-semibold">Categoría</button>
+                    <button id="tabPlanta" onclick="setVistaAgregada('planta')" class="nav-tab px-3 py-1 rounded font-semibold">Planta</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div class="glass-card rounded-lg p-4 focus-host" data-focus-title="Rentabilidad Agregada">
+                    <button class="focus-trigger" onclick="openFocus(event, this)" title="Modo enfoque"><i class="fa-solid fa-expand"></i></button>
+                    <div class="mb-2">
+                        <h3 class="text-[13px] font-bold text-slate-800" id="titleAggChart">Rentabilidad por Empresa</h3>
+                        <p class="text-[10px] text-slate-500">Ingresos, costos y utilidad agrupados</p>
+                    </div>
+                    <div class="h-72 relative">
+                        <canvas id="aggChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-lg p-4 focus-host" data-focus-title="Desglose Consolidado">
+                    <button class="focus-trigger" onclick="openFocus(event, this)" title="Modo enfoque"><i class="fa-solid fa-expand"></i></button>
+                    <div class="mb-2 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-[13px] font-bold text-slate-800">Desglose consolidado</h3>
+                            <p class="text-[10px] text-slate-500" id="titleAggTable">Por empresa</p>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto scrollbar-thin max-h-72">
+                        <table class="w-full text-[11px]">
+                            <thead class="sticky top-0 bg-brand-700 text-white uppercase text-[9px] tracking-wider z-10">
+                                <tr>
+                                    <th class="px-2 py-2 text-left font-bold">Grupo</th>
+                                    <th class="px-2 py-2 text-right font-bold">SKUs</th>
+                                    <th class="px-2 py-2 text-right font-bold">Ingresos</th>
+                                    <th class="px-2 py-2 text-right font-bold">Utilidad</th>
+                                    <th class="px-2 py-2 text-right font-bold">Margen %</th>
+                                    <th class="px-2 py-2 text-right font-bold">% Part.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="aggTableBody" class="divide-y divide-slate-100"></tbody>
+                            <tfoot id="aggTableFoot" class="bg-brand-700 text-white font-bold text-[11px] sticky bottom-0">
+                                <tr>
+                                    <td class="px-2 py-2 text-left">TOTALES</td>
+                                    <td class="px-2 py-2 text-right" id="aggFootSkus">—</td>
+                                    <td class="px-2 py-2 text-right" id="aggFootIngresos">—</td>
+                                    <td class="px-2 py-2 text-right text-accent-300" id="aggFootUtilidad">—</td>
+                                    <td class="px-2 py-2 text-right" id="aggFootMargen">—</td>
+                                    <td class="px-2 py-2 text-right">100.0%</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================== SECCIÓN 3: GRÁFICOS DE SKU ============================== -->
+        <section>
+            <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2 uppercase tracking-wide mb-3">
+                <span class="w-1 h-4 bg-brand-500 rounded"></span>
+                3. Análisis Comparativo de SKUs
+            </h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div class="glass-card rounded-lg p-4 focus-host" data-focus-title="Top 15 SKUs por Ingreso">
+                    <button class="focus-trigger" onclick="openFocus(event, this)" title="Modo enfoque"><i class="fa-solid fa-expand"></i></button>
+                    <div class="mb-2">
+                        <h3 class="text-[13px] font-bold text-slate-800">Top 15 SKUs por Ingreso</h3>
+                        <p class="text-[10px] text-slate-500">Ingresos vs Costos · Los de mayor volumen</p>
+                    </div>
+                    <div class="h-80 relative">
+                        <canvas id="topSkuChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-lg p-4 focus-host" data-focus-title="Matriz de Rentabilidad">
+                    <button class="focus-trigger" onclick="openFocus(event, this)" title="Modo enfoque"><i class="fa-solid fa-expand"></i></button>
+                    <div class="mb-2">
+                        <h3 class="text-[13px] font-bold text-slate-800">Matriz de Rentabilidad</h3>
+                        <p class="text-[10px] text-slate-500">Margen % vs Volumen · Tamaño = Utilidad</p>
+                    </div>
+                    <div class="h-80 relative">
+                        <canvas id="bubbleChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+                <div class="glass-card rounded-lg p-4 lg:col-span-2 focus-host" data-focus-title="Contribución al Margen">
+                    <button class="focus-trigger" onclick="openFocus(event, this)" title="Modo enfoque"><i class="fa-solid fa-expand"></i></button>
+                    <div class="mb-2">
+                        <h3 class="text-[13px] font-bold text-slate-800">Contribución al Margen del Subconjunto</h3>
+                        <p class="text-[10px] text-slate-500">Top 15 SKUs · Aporte a la utilidad bruta</p>
+                    </div>
+                    <div class="h-64 relative">
+                        <canvas id="contribucionChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-lg p-4 focus-host" data-focus-title="Clasificación ABC (Pareto)">
+                    <button class="focus-trigger" onclick="openFocus(event, this)" title="Modo enfoque"><i class="fa-solid fa-expand"></i></button>
+                    <div class="flex items-start justify-between mb-2">
+                        <div>
+                            <h3 class="text-[13px] font-bold text-slate-800">Clasificación ABC (Pareto)</h3>
+                            <p class="text-[10px] text-slate-500">Basado en contribución al margen</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 mb-3">
+                        <button onclick="setABCFilter('all')" data-abc="all" class="abc-filter-btn active text-[10px] px-2.5 py-1 rounded border border-slate-200 bg-white text-slate-600 font-semibold hover:bg-slate-50">Todos</button>
+                        <button onclick="setABCFilter('A')" data-abc="A" class="abc-filter-btn text-[10px] px-2.5 py-1 rounded border border-slate-200 bg-white text-slate-600 font-semibold hover:bg-slate-50">A</button>
+                        <button onclick="setABCFilter('B')" data-abc="B" class="abc-filter-btn text-[10px] px-2.5 py-1 rounded border border-slate-200 bg-white text-slate-600 font-semibold hover:bg-slate-50">B</button>
+                        <button onclick="setABCFilter('C')" data-abc="C" class="abc-filter-btn text-[10px] px-2.5 py-1 rounded border border-slate-200 bg-white text-slate-600 font-semibold hover:bg-slate-50">C</button>
+                    </div>
+                    <div class="space-y-1.5 max-h-56 overflow-y-auto scrollbar-thin pr-1" id="abcList"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================== SECCIÓN 4: TABLA DETALLADA ============================== -->
+        <section>
+            <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2 uppercase tracking-wide">
+                    <span class="w-1 h-4 bg-brand-500 rounded"></span>
+                    4. Análisis Detallado de SKUs
+                </h2>
+                <div class="flex items-center gap-2">
+                    <select id="tableSort" class="text-[10px] border border-slate-200 rounded-md px-2 py-1 bg-white text-slate-600">
+                        <option value="utilidad">↓ Utilidad</option>
+                        <option value="ingreso">↓ Ingreso</option>
+                        <option value="margen">↓ Margen %</option>
+                        <option value="unidades">↓ Unidades</option>
+                        <option value="nombre">A-Z Nombre</option>
+                    </select>
+                    <select id="tablePageSize" class="text-[10px] border border-slate-200 rounded-md px-2 py-1 bg-white text-slate-600">
+                        <option value="10">10 por página</option>
+                        <option value="25" selected>25 por página</option>
+                        <option value="50">50 por página</option>
+                        <option value="999">Todos</option>
+                    </select>
+                    <button onclick="exportCSV()" class="text-[10px] bg-brand-500 hover:bg-brand-600 text-white font-semibold px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5">
+                        <i class="fa-solid fa-download text-[10px]"></i> Descargar CSV
+                    </button>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-lg overflow-hidden focus-host" data-focus-title="Análisis Detallado de SKUs" data-focus-full="true">
+                <button class="focus-trigger" onclick="openFocus(event, this)" title="Modo enfoque"><i class="fa-solid fa-expand"></i></button>
+                <div class="overflow-x-auto scrollbar-thin">
+                    <table class="w-full text-[11px]">
+                        <thead class="bg-brand-500 text-white uppercase text-[9px] tracking-wider">
+                            <tr>
+                                <th class="px-2 py-2.5 text-left font-bold">#</th>
+                                <th class="px-2 py-2.5 text-left font-bold">SKU / Producto</th>
+                                <th class="px-2 py-2.5 text-left font-bold">Empresa</th>
+                                <th class="px-2 py-2.5 text-left font-bold">Categoría</th>
+                                <th class="px-2 py-2.5 text-left font-bold">Planta</th>
+                                <th class="px-2 py-2.5 text-right font-bold">P. Venta</th>
+                                <th class="px-2 py-2.5 text-right font-bold">Costo U.</th>
+                                <th class="px-2 py-2.5 text-right font-bold">M. Unit.</th>
+                                <th class="px-2 py-2.5 text-right font-bold">Margen %</th>
+                                <th class="px-2 py-2.5 text-right font-bold">Unid.</th>
+                                <th class="px-2 py-2.5 text-right font-bold">Ingresos</th>
+                                <th class="px-2 py-2.5 text-right font-bold">Costo Total</th>
+                                <th class="px-2 py-2.5 text-right font-bold">Utilidad</th>
+                                <th class="px-2 py-2.5 text-center font-bold">ABC</th>
+                                <th class="px-2 py-2.5 text-center font-bold">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productTableBody" class="divide-y divide-slate-100"></tbody>
+                        <tfoot class="bg-brand-700 text-white font-bold text-[11px]">
+                            <tr>
+                                <td colspan="9" class="px-2 py-2.5 text-right">TOTALES / PROMEDIOS →</td>
+                                <td class="px-2 py-2.5 text-right" id="footUnidades">—</td>
+                                <td class="px-2 py-2.5 text-right" id="footIngresos">—</td>
+                                <td class="px-2 py-2.5 text-right" id="footCostos">—</td>
+                                <td class="px-2 py-2.5 text-right text-accent-300" id="footUtilidad">—</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="flex items-center justify-between px-3 py-2 bg-slate-50 border-t border-slate-200 text-[11px]">
+                    <span class="text-slate-500" id="pageInfo">—</span>
+                    <div class="flex items-center gap-1">
+                        <button onclick="changePage(-1)" id="btnPrevPage" class="px-2 py-1 rounded border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-chevron-left text-[9px]"></i>
+                        </button>
+                        <span id="pageNumbers" class="flex gap-1"></span>
+                        <button onclick="changePage(1)" id="btnNextPage" class="px-2 py-1 rounded border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-chevron-right text-[9px]"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================== SECCIÓN 5: SIMULADOR ============================== -->
+        <section>
+            <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2 uppercase tracking-wide mb-3">
+                <span class="w-1 h-4 bg-brand-500 rounded"></span>
+                5. Simulador What-If <span class="text-[10px] font-normal text-slate-500 normal-case tracking-normal">(aplica al subconjunto filtrado)</span>
+            </h2>
+
+            <div class="glass-card rounded-lg p-5 focus-host" data-focus-title="Simulador What-If">
+                <button class="focus-trigger" onclick="openFocus(event, this)" title="Modo enfoque"><i class="fa-solid fa-expand"></i></button>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5 items-start">
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-700 flex justify-between mb-1">
+                                <span>Variación Precio Venta</span>
+                                <span class="text-brand-500 font-bold" id="lblPrecio">0%</span>
+                            </label>
+                            <input type="range" id="simPrecio" min="-20" max="20" value="0" step="1" class="w-full accent-brand-500 cursor-pointer">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-700 flex justify-between mb-1">
+                                <span>Variación Costo Unitario</span>
+                                <span class="text-accent-500 font-bold" id="lblCosto">0%</span>
+                            </label>
+                            <input type="range" id="simCosto" min="-20" max="20" value="0" step="1" class="w-full accent-accent-500 cursor-pointer">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-700 flex justify-between mb-1">
+                                <span>Variación Volumen</span>
+                                <span class="text-brand-600 font-bold" id="lblVolumen">0%</span>
+                            </label>
+                            <input type="range" id="simVolumen" min="-30" max="30" value="0" step="1" class="w-full accent-brand-600 cursor-pointer">
+                        </div>
+                        <button onclick="resetSimulador()" class="w-full text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 rounded-md transition-colors border border-slate-200">
+                            <i class="fa-solid fa-rotate-left mr-1"></i> Reiniciar
+                        </button>
+                    </div>
+
+                    <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                            <p class="text-[10px] uppercase font-bold text-slate-500 mb-1 tracking-wider">Utilidad Base</p>
+                            <p class="text-base font-extrabold text-slate-800" id="simUtilidadBase">—</p>
+                        </div>
+                        <div class="bg-brand-50 rounded-lg p-3 border border-brand-200">
+                            <p class="text-[10px] uppercase font-bold text-brand-700 mb-1 tracking-wider">Utilidad Simulada</p>
+                            <p class="text-base font-extrabold text-brand-700" id="simUtilidadNueva">—</p>
+                        </div>
+                        <div class="bg-accent-50 rounded-lg p-3 border border-accent-200">
+                            <p class="text-[10px] uppercase font-bold text-accent-700 mb-1 tracking-wider">Variación</p>
+                            <p class="text-base font-extrabold text-accent-700" id="simVariacion">—</p>
+                        </div>
+
+                        <div class="sm:col-span-3 bg-white rounded-lg p-3 border border-slate-200">
+                            <p class="text-[10px] uppercase font-bold text-slate-500 mb-1 tracking-wider">Margen % Simulado · Top 15</p>
+                            <div class="h-36 relative">
+                                <canvas id="simChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================== SECCIÓN 6: CONCLUSIONES ============================== -->
+        <section>
+            <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2 uppercase tracking-wide mb-3">
+                <span class="w-1 h-4 bg-brand-500 rounded"></span>
+                6. Conclusiones y Plan de Acción
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gradient-to-br from-brand-700 via-brand-500 to-accent-500 text-white rounded-lg p-5 shadow-md focus-host" data-focus-title="Insight Clave">
+                    <button class="focus-trigger" onclick="openFocus(event, this)" title="Modo enfoque" style="background:#fff;color:#1D1D72;"><i class="fa-solid fa-expand"></i></button>
+                    <div class="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-accent-100 bg-white/10 px-3 py-1 rounded border border-white/20 mb-3">
+                        <i class="fa-solid fa-lightbulb text-[10px]"></i> Insight Clave
+                    </div>
+                    <h3 class="text-sm font-bold text-white mb-2" id="insightTitle">—</h3>
+                    <p class="text-white/85 text-[11px] leading-relaxed" id="insightText">—</p>
+                </div>
+
+                <div class="glass-card rounded-lg p-5 md:col-span-2 space-y-2 focus-host" data-focus-title="Recomendaciones Estratégicas">
+                    <button class="focus-trigger" onclick="openFocus(event, this)" title="Modo enfoque"><i class="fa-solid fa-expand"></i></button>
+                    <h3 class="text-[13px] font-bold text-slate-800 flex items-center gap-2 mb-2">
+                        <i class="fa-solid fa-bullseye text-brand-500"></i> Recomendaciones Estratégicas
+                    </h3>
+                    <div id="recomendaciones" class="space-y-2"></div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-brand-700 text-white/70 text-[11px] py-4 mt-8 border-t-2 border-accent-500">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <span>© 2024 <strong class="text-white">Inlaca Disgaven</strong> · Tablero Ejecutivo de Rentabilidad</span>
+            <span>Business Intelligence · <i class="fa-solid fa-chart-pie text-accent-300"></i> Análisis Gerencial Multinivel</span>
+        </div>
+    </footer>
+
+    <!-- ============================== MODAL FOCUS ============================== -->
+    <div class="focus-modal" id="focusModal" onclick="if(event.target===this) closeFocus();">
+        <div class="focus-modal-inner">
+            <div class="focus-modal-header">
+                <div class="focus-modal-title">
+                    <i class="fa-solid fa-expand text-accent-300"></i>
+                    <span id="focusModalTitle">Detalle</span>
+                </div>
+                <button class="focus-modal-close" onclick="closeFocus()" title="Cerrar (ESC)">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="focus-modal-body" id="focusModalBody"></div>
+        </div>
+    </div>
+
+    <!-- ============================== MODAL IMPORTACIÓN ============================== -->
+    <div class="import-modal" id="importModal" onclick="if(event.target===this) cerrarImportador();">
+        <div class="import-inner">
+            <div class="focus-modal-header">
+                <div class="focus-modal-title">
+                    <i class="fa-solid fa-file-import text-accent-300"></i>
+                    <span>Importar datos Excel / CSV</span>
+                </div>
+                <button class="focus-modal-close" onclick="cerrarImportador()" title="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-[12px] text-slate-600">
+                    Arrastra tu archivo Excel (<strong>.xlsx</strong>, <strong>.xls</strong>) o CSV (<strong>.csv</strong>) aquí, o haz clic para seleccionarlo.
+                    El dashboard detecta automáticamente las columnas comunes.
+                </p>
+
+                <div id="dropZone" class="drop-zone rounded-lg p-8 text-center">
+                    <i class="fa-solid fa-cloud-arrow-up text-4xl text-brand-500 mb-3"></i>
+                    <p class="text-[13px] font-semibold text-slate-700 mb-1">Arrastra tu archivo aquí</p>
+                    <p class="text-[11px] text-slate-500 mb-4">o</p>
+                    <button onclick="document.getElementById('fileInput').click()" class="text-[11px] bg-brand-500 hover:bg-brand-600 text-white font-semibold px-4 py-2 rounded-md transition-colors">
+                        <i class="fa-solid fa-folder-open mr-1"></i> Seleccionar archivo
+                    </button>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" class="hidden">
+                </div>
+
+                <div id="importStatus" class="hidden">
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-[11px] text-slate-600">
+                        <p id="importStatusText">Procesando archivo...</p>
+                        <div class="mt-2 h-1 bg-slate-200 rounded overflow-hidden">
+                            <div id="importProgress" class="h-full bg-brand-500 transition-all duration-300" style="width:0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-200 pt-4">
+                    <p class="text-[10px] uppercase font-bold text-slate-500 mb-2 tracking-wider">Columnas esperadas</p>
+                    <div class="grid grid-cols-3 gap-2 text-[10px]">
+                        <div class="bg-slate-50 px-2 py-1 rounded border border-slate-200"><strong>sku</strong> (o Codigo)</div>
+                        <div class="bg-slate-50 px-2 py-1 rounded border border-slate-200"><strong>nombre</strong> (o Producto)</div>
+                        <div class="bg-slate-50 px-2 py-1 rounded border border-slate-200"><strong>empresa</strong> (o Razon Social)</div>
+                        <div class="bg-slate-50 px-2 py-1 rounded border border-slate-200"><strong>categoria</strong> (o Linea)</div>
+                        <div class="bg-slate-50 px-2 py-1 rounded border border-slate-200"><strong>subcategoria</strong></div>
+                        <div class="bg-slate-50 px-2 py-1 rounded border border-slate-200"><strong>planta</strong> (o Centro)</div>
+                        <div class="bg-slate-50 px-2 py-1 rounded border border-slate-200"><strong>precio</strong></div>
+                        <div class="bg-slate-50 px-2 py-1 rounded border border-slate-200"><strong>costo</strong></div>
+                        <div class="bg-slate-50 px-2 py-1 rounded border border-slate-200"><strong>unidades</strong> (o Cantidad)</div>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-2">
+                        <i class="fa-solid fa-circle-info mr-1"></i>
+                        Los nombres de columna no distinguen mayúsculas, tildes ni espacios.
+                    </p>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button onclick="cargarDatosEjemplo()" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-md transition-colors">
+                        Usar datos de ejemplo
+                    </button>
+                    <button onclick="cerrarImportador()" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-md transition-colors">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ============================================================
+    // DATOS DE EJEMPLO (fallback)
+    // ============================================================
+    let productos = [];
+
+    function generarDatosEjemplo() {
+        const plantasEj = ['Planta Valencia', 'Planta Maracay', 'Planta Barquisimeto'];
+        const seedRandom = (seed) => { let s = seed; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; }; };
+        const rnd = seedRandom(42);
+        const pickEmpresa = (i) => i < 22 ? 'Inlaca' : i < 40 ? 'Disgaven' : 'Lácteos del Centro';
+        const pickPlanta = (i) => i % 5 === 0 ? plantasEj[2] : i % 3 === 0 ? plantasEj[1] : plantasEj[0];
+
+        const plan = [
+            ['Lácteos','Leche','Leche Entera 1L'],['Lácteos','Leche','Leche Descremada 1L'],
+            ['Lácteos','Leche','Leche Semidescremada 1L'],['Lácteos','Leche','Leche en Polvo 900g'],
+            ['Lácteos','Leche','Leche UHT 1L'],['Lácteos','Leche','Leche Deslactosada 1L'],
+            ['Lácteos','Yogur','Yogur Natural 500g'],['Lácteos','Yogur','Yogur Fresa 500g'],
+            ['Lácteos','Yogur','Yogur Griego 400g'],['Lácteos','Yogur','Yogur Light 500g'],
+            ['Lácteos','Yogur','Yogur Durazno 500g'],
+            ['Lácteos','Bebidas Lácteas','Bebida Láctea 1L'],['Lácteos','Bebidas Lácteas','Malta Láctea 355ml'],
+            ['Lácteos','Bebidas Lácteas','Batido Nutricional 250ml'],['Lácteos','Bebidas Lácteas','Avena Láctea 1L'],
+            ['Quesos','Queso Fresco','Queso Blanco 500g'],['Quesos','Queso Fresco','Queso Criollo 500g'],
+            ['Quesos','Queso Fresco','Queso Fresco 1kg'],['Quesos','Queso Fresco','Queso de Mano 500g'],
+            ['Quesos','Queso Fresco','Queso Telita 500g'],['Quesos','Queso Fresco','Queso Palmita 500g'],
+            ['Quesos','Queso Madurado','Queso Amarillo 500g'],['Quesos','Queso Madurado','Queso Gouda 400g'],
+            ['Quesos','Queso Madurado','Queso Paipa 500g'],['Quesos','Queso Madurado','Queso Parmesano 250g'],
+            ['Quesos','Queso Madurado','Queso Cheddar 400g'],
+            ['Derivados','Mantequilla','Mantequilla 250g'],['Derivados','Mantequilla','Mantequilla Sin Sal 250g'],
+            ['Derivados','Mantequilla','Mantequilla Light 200g'],['Derivados','Mantequilla','Mantequilla 500g'],
+            ['Derivados','Crema','Crema de Leche 250ml'],['Derivados','Crema','Crema Ácida 200ml'],
+            ['Derivados','Crema','Crema para Batir 1L'],['Derivados','Crema','Crema Chantilly 250ml'],
+            ['Derivados','Dulces','Dulce de Leche 500g'],['Derivados','Dulces','Leche Condensada 397g'],
+            ['Derivados','Dulces','Arequipe 250g'],['Derivados','Dulces','Manjar 500g'],
+            ['Derivados','Dulces','Leche Condensada Light 397g'],
+        ];
+        const relleno = [
+            ['Lácteos','Leche','Leche Entera 1L'],['Lácteos','Yogur','Yogur Natural 500g'],
+            ['Quesos','Queso Fresco','Queso Blanco 500g'],['Derivados','Mantequilla','Mantequilla 250g'],
+            ['Derivados','Dulces','Dulce de Leche 500g'],['Lácteos','Bebidas Lácteas','Bebida Láctea 1L'],
+            ['Quesos','Queso Madurado','Queso Amarillo 500g'],['Derivados','Crema','Crema de Leche 250ml'],
+            ['Lácteos','Leche','Leche Descremada 1L'],['Lácteos','Yogur','Yogur Griego 400g'],
+            ['Quesos','Queso Fresco','Queso Criollo 500g'],['Derivados','Dulces','Leche Condensada 397g'],
+        ];
+        for (let i = plan.length; i < 55; i++) plan.push(relleno[(i - plan.length) % relleno.length]);
+
+        const nombresUsados = {};
+        const result = [];
+        for (let i = 0; i < 55; i++) {
+            const [cat, subcat, nombreBase] = plan[i];
+            nombresUsados[nombreBase] = (nombresUsados[nombreBase] || 0) + 1;
+            const sufijo = nombresUsados[nombreBase] > 1 ? ` · L${nombresUsados[nombreBase]}` : '';
+            const nombre = nombreBase + sufijo;
+
+            const basePrecio = cat === 'Lácteos' ? 1.8 + rnd() * 2.5 : cat === 'Quesos' ? 3.5 + rnd() * 3.5 : 2.4 + rnd() * 2.8;
+            const precio = Math.round(basePrecio * 100) / 100;
+            const margenObj = 0.10 + rnd() * 0.30;
+            const costo = Math.round(precio * (1 - margenObj) * 100) / 100;
+            const baseVol = cat === 'Lácteos' ? 8000 + rnd() * 35000 : cat === 'Quesos' ? 3000 + rnd() * 14000 : 5000 + rnd() * 20000;
+            const unidades = Math.round(baseVol);
+            let costoFinal = costo;
+            if (i === 7 || i === 23 || i === 41) costoFinal = Math.round(precio * 1.08 * 100) / 100;
+
+            result.push({
+                id: i + 1,
+                sku: `SKU-${String(i + 1).padStart(4, '0')}`,
+                nombre, empresa: pickEmpresa(i), categoria: cat, subcategoria: subcat,
+                planta: pickPlanta(i), precio, costo: costoFinal, unidades,
+            });
+        }
+        return result;
+    }
+
+    // ============================================================
+    // ESTADO GLOBAL
+    // ============================================================
+    const COSTOS_FIJOS_MENSUALES = 45000;
+    let filtros = { empresa: '', categoria: '', planta: '', busqueda: '' };
+    let vistaAgregada = 'empresa';
+    let abcFilter = 'all';
+    let currentPage = 1;
+    let pageSize = 25;
+    let dataFiltrada = [];
+
+    // ============================================================
+    // UTILIDADES
+    // ============================================================
+    function calcularDerivados(list) {
+        return list.map(p => {
+            const ingresos = p.precio * p.unidades;
+            const costos = p.costo * p.unidades;
+            const utilidad = ingresos - costos;
+            const margenUnit = p.precio - p.costo;
+            const margenPct = p.precio > 0 ? (margenUnit / p.precio) * 100 : 0;
+            return { ...p, ingresos, costos, utilidad, margenUnit, margenPct };
+        });
+    }
+
+    function clasificarABC(items) {
+        const totalUtil = items.reduce((s, i) => s + Math.max(i.utilidad, 0), 0);
+        const sorted = [...items].sort((a, b) => b.utilidad - a.utilidad);
+        let acum = 0;
+        return sorted.map(item => {
+            acum += Math.max(item.utilidad, 0);
+            const pctAcum = totalUtil > 0 ? (acum / totalUtil) * 100 : 0;
+            let clase = 'C';
+            if (pctAcum <= 70) clase = 'A';
+            else if (pctAcum <= 90) clase = 'B';
+            return { ...item, abc: clase, pctAcum };
+        });
+    }
+
+    function fmtMoney(v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function fmtNum(v) { return v.toLocaleString('en-US', { maximumFractionDigits: 0 }); }
+    function fmtK(v) {
+        if (Math.abs(v) >= 1_000_000) return '$' + (v / 1_000_000).toFixed(1) + 'M';
+        if (Math.abs(v) >= 1_000) return '$' + (v / 1_000).toFixed(0) + 'k';
+        return '$' + v.toFixed(2);
+    }
+
+    // ============================================================
+    // IMPORTACIÓN EXCEL / CSV
+    // ============================================================
+    // Mapeo flexible de nombres de columnas
+    const COLUMN_MAP = {
+        sku:         ['sku','codigo','código','cod','cód','codigo sku','código sku','cod sku'],
+        nombre:      ['nombre','producto','descripcion','descripción','desc','nombre producto'],
+        empresa:     ['empresa','razon social','razón social','compañia','compañía','company','emp'],
+        categoria:   ['categoria','categoría','linea','línea','familia','categoria producto'],
+        subcategoria:['subcategoria','subcategoría','sublinea','sublínea','subfamilia','sub linea','sub línea'],
+        planta:      ['planta','centro','ubicacion','ubicación','site','planta fabricacion'],
+        precio:      ['precio','precio venta','pvp','precio unitario','precio unit','pv','precio de venta'],
+        costo:       ['costo','costo unitario','costo unit','cu','costo de venta'],
+        unidades:    ['unidades','cantidad','cantidad vendida','volumen','qty','unid','und'],
+    };
+
+    function normalizarHeader(h) {
+        return String(h || '').toLowerCase().trim()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quitar tildes
+            .replace(/[_\-\.]/g, ' ')
+            .replace(/\s+/g, ' ');
+    }
+
+    function detectarColumna(headers, key) {
+        const mapList = COLUMN_MAP[key];
+        const normalized = headers.map(h => normalizarHeader(h));
+        // Búsqueda exacta primero
+        for (const candidate of mapList) {
+            const idx = normalized.indexOf(normalizarHeader(candidate));
+            if (idx >= 0) return idx;
+        }
+        // Búsqueda parcial
+        for (const candidate of mapList) {
+            const candNorm = normalizarHeader(candidate);
+            const idx = normalized.findIndex(h => h.includes(candNorm) || candNorm.includes(h));
+            if (idx >= 0) return idx;
+        }
+        return -1;
+    }
+
+    function parsearFilas(rows) {
+        if (!rows || rows.length < 2) throw new Error('El archivo no tiene datos suficientes');
+
+        const headers = rows[0];
+        const idx = {};
+        Object.keys(COLUMN_MAP).forEach(key => {
+            idx[key] = detectarColumna(headers, key);
+        });
+
+        // Validar columnas críticas
+        const faltantes = [];
+        ['sku','nombre','precio','costo','unidades'].forEach(k => {
+            if (idx[k] === -1) faltantes.push(k);
+        });
+        if (faltantes.length > 0) {
+            throw new Error('No se encontraron las columnas obligatorias: ' + faltantes.join(', ') +
+                '. Verifica que tu Excel tenga: ' + faltantes.map(f => COLUMN_MAP[f][0]).join(', '));
+        }
+
+        const result = [];
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row || row.length === 0) continue;
+
+            const sku = String(row[idx.sku] || '').trim();
+            const nombre = String(row[idx.nombre] || '').trim();
+            if (!sku && !nombre) continue; // fila vacía
+
+            const precio = parseFloat(String(row[idx.precio] || '0').replace(',', '.')) || 0;
+            const costo = parseFloat(String(row[idx.costo] || '0').replace(',', '.')) || 0;
+            const unidades = Math.round(parseFloat(String(row[idx.unidades] || '0').replace(',', '.')) || 0);
+
+            result.push({
+                id: result.length + 1,
+                sku: sku || `SKU-${String(result.length + 1).padStart(4, '0')}`,
+                nombre: nombre || `Producto ${result.length + 1}`,
+                empresa: idx.empresa >= 0 ? String(row[idx.empresa] || 'Sin empresa').trim() : 'Sin empresa',
+                categoria: idx.categoria >= 0 ? String(row[idx.categoria] || 'Sin categoría').trim() : 'Sin categoría',
+                subcategoria: idx.subcategoria >= 0 ? String(row[idx.subcategoria] || '').trim() : '',
+                planta: idx.planta >= 0 ? String(row[idx.planta] || 'Sin planta').trim() : 'Sin planta',
+                precio, costo, unidades,
+            });
+        }
+
+        if (result.length === 0) throw new Error('No se encontraron filas de datos válidas');
+        return result;
+    }
+
+    function procesarArchivo(file) {
+        const dropZone = document.getElementById('dropZone');
+        const statusDiv = document.getElementById('importStatus');
+        const statusText = document.getElementById('importStatusText');
+        const progress = document.getElementById('importProgress');
+
+        dropZone.classList.add('hidden');
+        statusDiv.classList.remove('hidden');
+        statusText.textContent = `Leyendo "${file.name}"...`;
+        progress.style.width = '30%';
+
+        const reader = new FileReader();
+        const isCSV = file.name.toLowerCase().endsWith('.csv');
+
+        reader.onload = (e) => {
+            try {
+                progress.style.width = '60%';
+                let rows;
+
+                if (isCSV) {
+                    // Parser CSV manual (soporta comillas y saltos)
+                    const text = e.target.result;
+                    rows = parseCSV(text);
+                } else {
+                    // Parser Excel con SheetJS
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+                }
+
+                progress.style.width = '85%';
+                statusText.textContent = `Procesando ${rows.length - 1} filas...`;
+
+                const parsed = parsearFilas(rows);
+
+                progress.style.width = '100%';
+                statusText.innerHTML = `<i class="fa-solid fa-check-circle text-green-600 mr-1"></i> ¡Éxito! ${parsed.length} SKUs cargados.`;
+
+                setTimeout(() => {
+                    aplicarDatosImportados(parsed, file.name);
+                    cerrarImportador();
+                }, 600);
+
+            } catch (err) {
+                console.error(err);
+                progress.style.width = '100%';
+                progress.style.background = '#E31D2D';
+                statusText.innerHTML = `<i class="fa-solid fa-circle-exclamation text-red-600 mr-1"></i> Error: ${err.message}`;
+                setTimeout(() => {
+                    dropZone.classList.remove('hidden');
+                    statusDiv.classList.add('hidden');
+                    progress.style.background = '';
+                    progress.style.width = '0%';
+                }, 3500);
+            }
+        };
+
+        reader.onerror = () => {
+            statusText.innerHTML = `<i class="fa-solid fa-circle-exclamation text-red-600 mr-1"></i> Error al leer el archivo`;
+            setTimeout(() => {
+                dropZone.classList.remove('hidden');
+                statusDiv.classList.add('hidden');
+            }, 3000);
+        };
+
+        if (isCSV) reader.readAsText(file, 'UTF-8');
+        else reader.readAsArrayBuffer(file);
+    }
+
+    // Parser CSV robusto (maneja comillas, saltos de línea, delimitadores , o ;)
+    function parseCSV(text) {
+        // Detectar delimitador
+        const firstLine = text.split(/\r?\n/)[0];
+        const commaCount = (firstLine.match(/,/g) || []).length;
+        const semicolonCount = (firstLine.match(/;/g) || []).length;
+        const delimiter = semicolonCount > commaCount ? ';' : ',';
+
+        const rows = [];
+        let currentRow = [];
+        let currentField = '';
+        let inQuotes = false;
+        let i = 0;
+        const len = text.length;
+
+        while (i < len) {
+            const char = text[i];
+            const next = text[i + 1];
+
+            if (inQuotes) {
+                if (char === '"' && next === '"') {
+                    currentField += '"';
+                    i += 2;
+                    continue;
+                }
+                if (char === '"') {
+                    inQuotes = false;
+                    i++;
+                    continue;
+                }
+                currentField += char;
+            } else {
+                if (char === '"') {
+                    inQuotes = true;
+                    i++;
+                    continue;
+                }
+                if (char === delimiter) {
+                    currentRow.push(currentField.trim());
+                    currentField = '';
+                    i++;
+                    continue;
+                }
+                if (char === '\n' || (char === '\r' && next === '\n')) {
+                    currentRow.push(currentField.trim());
+                    if (currentRow.some(c => c !== '')) rows.push(currentRow);
+                    currentRow = [];
+                    currentField = '';
+                    i += char === '\r' ? 2 : 1;
+                    continue;
+                }
+                if (char === '\r') { i++; continue; }
+                currentField += char;
+            }
+            i++;
+        }
+        if (currentField || currentRow.length) {
+            currentRow.push(currentField.trim());
+            if (currentRow.some(c => c !== '')) rows.push(currentRow);
+        }
+        return rows;
+    }
+
+    function aplicarDatosImportados(nuevosProductos, nombreArchivo) {
+        productos = nuevosProductos;
+
+        // Resetear filtros y paginación
+        filtros = { empresa: '', categoria: '', planta: '', busqueda: '' };
+        document.getElementById('filterEmpresa').value = '';
+        document.getElementById('filterCategoria').value = '';
+        document.getElementById('filterPlanta').value = '';
+        document.getElementById('filterBusqueda').value = '';
+        currentPage = 1;
+
+        // Actualizar opciones de filtros
+        reconstruirFiltros();
+
+        // Actualizar banner
+        const banner = document.getElementById('dataSourceText');
+        if (banner) {
+            banner.innerHTML = `<i class="fa-solid fa-file-excel text-brand-500"></i> Datos cargados desde: <strong>${nombreArchivo}</strong> · ${nuevosProductos.length} SKUs`;
+        }
+
+        // Aplicar
+        aplicarFiltros();
+    }
+
+    function reconstruirFiltros() {
+        const selEmpresa = document.getElementById('filterEmpresa');
+        const selCategoria = document.getElementById('filterCategoria');
+        const selPlanta = document.getElementById('filterPlanta');
+
+        const empAct = selEmpresa.value;
+        const catAct = selCategoria.value;
+        const plaAct = selPlanta.value;
+
+        selEmpresa.innerHTML = '<option value="">🏢 Todas las Empresas</option>';
+        selCategoria.innerHTML = '<option value="">📦 Todas las Categorías</option>';
+        selPlanta.innerHTML = '<option value="">🏭 Todas las Plantas</option>';
+
+        [...new Set(productos.map(p => p.empresa))].filter(Boolean).sort().forEach(e => selEmpresa.innerHTML += `<option value="${e}">${e}</option>`);
+        [...new Set(productos.map(p => p.categoria))].filter(Boolean).sort().forEach(c => selCategoria.innerHTML += `<option value="${c}">${c}</option>`);
+        [...new Set(productos.map(p => p.planta))].filter(Boolean).sort().forEach(p => selPlanta.innerHTML += `<option value="${p}">${p}</option>`);
+
+        if ([...selEmpresa.options].some(o => o.value === empAct)) selEmpresa.value = empAct;
+        if ([...selCategoria.options].some(o => o.value === catAct)) selCategoria.value = catAct;
+        if ([...selPlanta.options].some(o => o.value === plaAct)) selPlanta.value = plaAct;
+    }
+
+    function cargarDatosEjemplo() {
+        productos = generarDatosEjemplo();
+        filtros = { empresa: '', categoria: '', planta: '', busqueda: '' };
+        document.getElementById('filterEmpresa').value = '';
+        document.getElementById('filterCategoria').value = '';
+        document.getElementById('filterPlanta').value = '';
+        document.getElementById('filterBusqueda').value = '';
+        currentPage = 1;
+        reconstruirFiltros();
+        const banner = document.getElementById('dataSourceText');
+        if (banner) banner.innerHTML = `<i class="fa-solid fa-database text-brand-500"></i> Usando datos de ejemplo (${productos.length} SKUs). Importa tu Excel/CSV para reemplazarlos.`;
+        aplicarFiltros();
+        cerrarImportador();
+    }
+
+    function abrirImportador() {
+        document.getElementById('importModal').classList.add('open');
+        document.getElementById('dropZone').classList.remove('hidden');
+        document.getElementById('importStatus').classList.add('hidden');
+        document.getElementById('importProgress').style.width = '0%';
+        document.getElementById('importProgress').style.background = '';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function cerrarImportador() {
+        document.getElementById('importModal').classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    // ============================================================
+    // FILTROS
+    // ============================================================
+    function initFiltros() {
+        document.getElementById('filterEmpresa').addEventListener('change', e => { filtros.empresa = e.target.value; aplicarFiltros(); });
+        document.getElementById('filterCategoria').addEventListener('change', e => { filtros.categoria = e.target.value; aplicarFiltros(); });
+        document.getElementById('filterPlanta').addEventListener('change', e => { filtros.planta = e.target.value; aplicarFiltros(); });
+        document.getElementById('filterBusqueda').addEventListener('input', e => { filtros.busqueda = e.target.value.trim(); aplicarFiltros(); });
+    }
+
+    function resetFiltros() {
+        filtros = { empresa: '', categoria: '', planta: '', busqueda: '' };
+        document.getElementById('filterEmpresa').value = '';
+        document.getElementById('filterCategoria').value = '';
+        document.getElementById('filterPlanta').value = '';
+        document.getElementById('filterBusqueda').value = '';
+        aplicarFiltros();
+    }
+
+    function aplicarFiltros() {
+        currentPage = 1;
+        let list = productos;
+        if (filtros.empresa)  list = list.filter(p => p.empresa === filtros.empresa);
+        if (filtros.categoria) list = list.filter(p => p.categoria === filtros.categoria);
+        if (filtros.planta)   list = list.filter(p => p.planta === filtros.planta);
+        if (filtros.busqueda) {
+            const q = filtros.busqueda.toLowerCase();
+            list = list.filter(p =>
+                (p.nombre || '').toLowerCase().includes(q) ||
+                (p.sku || '').toLowerCase().includes(q) ||
+                (p.subcategoria || '').toLowerCase().includes(q)
+            );
+        }
+        dataFiltrada = calcularDerivados(list);
+
+        renderActiveChips();
+        renderKPIs();
+        renderAggChart();
+        renderAggTable();
+        renderTopSkuChart();
+        renderBubbleChart();
+        renderContribucionChart();
+        renderABC();
+        renderTabla();
+        renderInsights();
+        renderSimulador();
+    }
+
+    function renderActiveChips() {
+        const cont = document.getElementById('activeFilters');
+        const chips = [];
+        if (filtros.empresa)   chips.push({ k: 'empresa',   v: filtros.empresa,   icon: 'fa-building' });
+        if (filtros.categoria) chips.push({ k: 'categoria', v: filtros.categoria, icon: 'fa-tag' });
+        if (filtros.planta)    chips.push({ k: 'planta',    v: filtros.planta,    icon: 'fa-industry' });
+        if (filtros.busqueda)  chips.push({ k: 'busqueda',  v: `"${filtros.busqueda}"`, icon: 'fa-magnifying-glass' });
+
+        cont.innerHTML = chips.map(c => `
+            <span class="filter-chip">
+                <i class="fa-solid ${c.icon} text-[9px]"></i>
+                <span>${c.v}</span>
+                <button onclick="quitarFiltro('${c.k}')" class="hover:text-accent-700">
+                    <i class="fa-solid fa-xmark text-[10px]"></i>
+                </button>
+            </span>
+        `).join('');
+
+        document.getElementById('filterCount').textContent = dataFiltrada.length;
+        const scope = [];
+        if (filtros.empresa) scope.push(filtros.empresa);
+        if (filtros.categoria) scope.push(filtros.categoria);
+        if (filtros.planta) scope.push(filtros.planta);
+        document.getElementById('kpiScope').textContent = scope.length ? scope.join(' · ') : 'Vista global';
+    }
+
+    function quitarFiltro(k) {
+        if (k === 'busqueda') {
+            filtros.busqueda = '';
+            document.getElementById('filterBusqueda').value = '';
+        } else {
+            filtros[k] = '';
+            const map = { empresa: 'filterEmpresa', categoria: 'filterCategoria', planta: 'filterPlanta' };
+            document.getElementById(map[k]).value = '';
+        }
+        aplicarFiltros();
+    }
+
+    // ============================================================
+    // KPIs
+    // ============================================================
+    function renderKPIs() {
+        const totalI = dataFiltrada.reduce((s, i) => s + i.ingresos, 0);
+        const totalC = dataFiltrada.reduce((s, i) => s + i.costos, 0);
+        const totalU = totalI - totalC;
+        const margen = totalI > 0 ? (totalU / totalI) * 100 : 0;
+        const enPerdida = dataFiltrada.filter(p => p.utilidad < 0);
+
+        document.getElementById('kpiIngresos').textContent = fmtK(totalI);
+        document.getElementById('kpiIngresosSub').innerHTML = `<i class="fa-solid fa-cube text-[9px] mr-1"></i>${fmtNum(dataFiltrada.reduce((s,i)=>s+i.unidades,0))} unidades · ${dataFiltrada.length} SKUs`;
+        document.getElementById('kpiUtilidad').textContent = fmtK(totalU);
+        document.getElementById('kpiUtilidadSub').textContent = `Costo total: ${fmtK(totalC)}`;
+        document.getElementById('kpiMargen').textContent = margen.toFixed(1) + '%';
+        const margenProm = dataFiltrada.length ? dataFiltrada.reduce((s,i)=>s+i.margenPct,0)/dataFiltrada.length : 0;
+        document.getElementById('kpiMargenSub').textContent = `Promedio simple: ${margenProm.toFixed(1)}%`;
+        document.getElementById('kpiPerdida').textContent = enPerdida.length;
+        document.getElementById('kpiPerdidaSub').textContent = enPerdida.length > 0
+            ? `${enPerdida.slice(0,2).map(p => p.nombre).join(', ')}${enPerdida.length > 2 ? '…' : ''}`
+            : 'Ninguno ✓';
+        document.getElementById('globalMarginBadge').textContent = margen.toFixed(2) + '%';
+
+        const sorted = [...dataFiltrada].sort((a, b) => b.margenPct - a.margenPct);
+        if (sorted.length) {
+            document.getElementById('kpiTopProduct').textContent = sorted[0].nombre + ` (${sorted[0].margenPct.toFixed(0)}%)`;
+            document.getElementById('kpiWorstProduct').textContent = sorted[sorted.length-1].nombre + ` (${sorted[sorted.length-1].margenPct.toFixed(0)}%)`;
+        }
+
+        const ratioMC = totalI > 0 ? (totalI - totalC) / totalI : 0;
+        const peVal = ratioMC > 0 ? COSTOS_FIJOS_MENSUALES / ratioMC : 0;
+        document.getElementById('kpiPE').textContent = fmtK(peVal) + ' / mes';
+
+        const top5 = [...dataFiltrada].sort((a,b)=>b.utilidad-a.utilidad).slice(0,5);
+        const top5Util = top5.reduce((s,i)=>s+Math.max(i.utilidad,0),0);
+        const totalPos = dataFiltrada.reduce((s,i)=>s+Math.max(i.utilidad,0),0);
+        document.getElementById('kpiConcentracion').textContent = totalPos > 0 ? (top5Util/totalPos*100).toFixed(1) + '%' : '—';
+    }
+
+    // ============================================================
+    // VISTA AGREGADA
+    // ============================================================
+    function setVistaAgregada(v) {
+        vistaAgregada = v;
+        ['empresa','categoria','planta'].forEach(x => {
+            document.getElementById('tab'+x.charAt(0).toUpperCase()+x.slice(1)).classList.toggle('active', x === v);
+        });
+        renderAggChart();
+        renderAggTable();
+    }
+
+    function agruparPor(campo) {
+        const map = {};
+        dataFiltrada.forEach(p => {
+            const key = p[campo] || 'Sin asignar';
+            if (!map[key]) map[key] = { key, ingresos:0, costos:0, utilidad:0, unidades:0, skus:0 };
+            map[key].ingresos += p.ingresos;
+            map[key].costos += p.costos;
+            map[key].utilidad += p.utilidad;
+            map[key].unidades += p.unidades;
+            map[key].skus += 1;
+        });
+        return Object.values(map).map(g => ({
+            ...g,
+            margenPct: g.ingresos > 0 ? (g.utilidad/g.ingresos)*100 : 0,
+        })).sort((a,b) => b.ingresos - a.ingresos);
+    }
+
+    let aggChart;
+    function renderAggChart() {
+        const grupos = agruparPor(vistaAgregada);
+        const labelKey = vistaAgregada === 'empresa' ? 'Empresa' : vistaAgregada === 'categoria' ? 'Categoría' : 'Planta';
+        document.getElementById('titleAggChart').textContent = `Rentabilidad por ${labelKey}`;
+        document.getElementById('titleAggTable').textContent = `Por ${labelKey.toLowerCase()}`;
+
+        const ctx = document.getElementById('aggChart').getContext('2d');
+        if (aggChart) aggChart.destroy();
+        aggChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: grupos.map(g => g.key.length > 20 ? g.key.substring(0,18)+'…' : g.key),
+                datasets: [
+                    { label: 'Ingresos', data: grupos.map(g=>g.ingresos), backgroundColor: '#1D1D72', borderRadius: 4 },
+                    { label: 'Costos',   data: grupos.map(g=>g.costos),   backgroundColor: '#E31D2D', borderRadius: 4 },
+                    { label: 'Utilidad', data: grupos.map(g=>g.utilidad), backgroundColor: '#7c7ccc', borderRadius: 4 },
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } },
+                    tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${fmtMoney(c.raw)}` } }
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { callback: v => '$'+(v/1000).toFixed(0)+'k', font:{size:10} }, grid:{color:'#f1f5f9'} },
+                    x: { ticks: { font:{size:9} }, grid: { display:false } }
+                }
+            }
+        });
+        chartRegistry['aggChart'] = aggChart;
+    }
+
+    function renderAggTable() {
+        const grupos = agruparPor(vistaAgregada);
+        const totalIng = grupos.reduce((s,g)=>s+g.ingresos,0);
+        const totalUtil = grupos.reduce((s,g)=>s+g.utilidad,0);
+        const totalSkus = grupos.reduce((s,g)=>s+g.skus,0);
+        const totalMargen = totalIng > 0 ? (totalUtil/totalIng)*100 : 0;
+
+        const tbody = document.getElementById('aggTableBody');
+        tbody.innerHTML = '';
+        grupos.forEach(g => {
+            const part = totalIng > 0 ? (g.ingresos/totalIng*100) : 0;
+            const margenColor = g.margenPct >= 30 ? 'text-brand-600' : g.margenPct >= 15 ? 'text-amber-600' : 'text-accent-600';
+            tbody.innerHTML += `
+                <tr class="hover:bg-brand-50/40">
+                    <td class="px-2 py-2 font-semibold text-slate-700">${g.key}</td>
+                    <td class="px-2 py-2 text-right text-slate-600">${g.skus}</td>
+                    <td class="px-2 py-2 text-right text-slate-700">${fmtK(g.ingresos)}</td>
+                    <td class="px-2 py-2 text-right font-semibold ${g.utilidad>=0?'text-brand-600':'text-accent-600'}">${fmtK(g.utilidad)}</td>
+                    <td class="px-2 py-2 text-right font-bold ${margenColor}">${g.margenPct.toFixed(1)}%</td>
+                    <td class="px-2 py-2 text-right">
+                        <div class="flex items-center justify-end gap-1">
+                            <span class="text-slate-500">${part.toFixed(1)}%</span>
+                            <div class="w-10 h-1.5 bg-slate-100 rounded overflow-hidden">
+                                <div class="h-full bg-brand-500" style="width:${part}%"></div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        document.getElementById('aggFootSkus').textContent = totalSkus;
+        document.getElementById('aggFootIngresos').textContent = fmtK(totalIng);
+        document.getElementById('aggFootUtilidad').textContent = fmtK(totalUtil);
+        document.getElementById('aggFootMargen').textContent = totalMargen.toFixed(1) + '%';
+    }
+
+    // ============================================================
+    // CHARTS
+    // ============================================================
+    let topSkuChart, bubbleChart, contribucionChart, simChart;
+
+    function renderTopSkuChart() {
+        const top = [...dataFiltrada].sort((a,b)=>b.ingresos-a.ingresos).slice(0,15);
+        const ctx = document.getElementById('topSkuChart').getContext('2d');
+        if (topSkuChart) topSkuChart.destroy();
+        topSkuChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: top.map(p => p.nombre.length > 22 ? p.nombre.substring(0,20)+'…' : p.nombre),
+                datasets: [
+                    { label: 'Ingresos', data: top.map(p=>p.ingresos), backgroundColor: '#1D1D72', borderRadius: 3 },
+                    { label: 'Costos',   data: top.map(p=>p.costos),   backgroundColor: '#E31D2D', borderRadius: 3 },
+                ]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } },
+                    tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${fmtMoney(c.raw)}` } }
+                },
+                scales: {
+                    x: { beginAtZero: true, ticks: { callback: v => '$'+(v/1000).toFixed(0)+'k', font:{size:9} }, grid:{color:'#f1f5f9'} },
+                    y: { ticks: { font:{size:8} }, grid: { display:false } }
+                }
+            }
+        });
+        chartRegistry['topSkuChart'] = topSkuChart;
+    }
+
+    function renderBubbleChart() {
+        const top = [...dataFiltrada].sort((a,b)=>b.ingresos-a.ingresos).slice(0,30);
+        const maxUtil = Math.max(...top.map(p=>Math.abs(p.utilidad)), 1);
+        const ctx = document.getElementById('bubbleChart').getContext('2d');
+        if (bubbleChart) bubbleChart.destroy();
+        bubbleChart = new Chart(ctx, {
+            type: 'bubble',
+            data: {
+                datasets: [{
+                    label: 'SKUs',
+                    data: top.map(p => ({ x: p.unidades, y: p.margenPct, r: 6 + (Math.abs(p.utilidad)/maxUtil)*18, nombre: p.nombre, empresa: p.empresa })),
+                    backgroundColor: top.map(p => p.margenPct >= 30 ? 'rgba(29,29,114,0.55)' : p.margenPct >= 15 ? 'rgba(124,124,204,0.55)' : 'rgba(227,29,45,0.55)'),
+                    borderColor: top.map(p => p.margenPct >= 30 ? '#1D1D72' : p.margenPct >= 15 ? '#7c7ccc' : '#E31D2D'),
+                    borderWidth: 1.5
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: c => {
+                        const d = c.raw;
+                        return [` ${d.nombre}`, ` ${d.empresa}`, ` Volumen: ${fmtNum(d.x)}`, ` Margen: ${d.y.toFixed(1)}%`];
+                    }}}
+                },
+                scales: {
+                    x: { title:{display:true,text:'Unidades',font:{size:10}}, ticks:{callback:v=>fmtNum(v),font:{size:9}}, grid:{color:'#f1f5f9'} },
+                    y: { title:{display:true,text:'Margen %',font:{size:10}}, ticks:{callback:v=>v+'%',font:{size:9}}, grid:{color:'#f1f5f9'} }
+                }
+            }
+        });
+        chartRegistry['bubbleChart'] = bubbleChart;
+    }
+
+    function renderContribucionChart() {
+        const top = [...dataFiltrada].sort((a,b)=>b.utilidad-a.utilidad).slice(0,15);
+        const ctx = document.getElementById('contribucionChart').getContext('2d');
+        if (contribucionChart) contribucionChart.destroy();
+        contribucionChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: top.map(p => p.nombre.length > 18 ? p.nombre.substring(0,16)+'…' : p.nombre),
+                datasets: [{
+                    label: 'Utilidad',
+                    data: top.map(p=>p.utilidad),
+                    backgroundColor: top.map(p => p.utilidad >= 0 ? '#1D1D72' : '#E31D2D'),
+                    borderRadius: 3
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend:{display:false}, tooltip:{callbacks:{label:c=>` ${fmtMoney(c.raw)}`}} },
+                scales: {
+                    y: { ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'k',font:{size:9}}, grid:{color:'#f1f5f9'} },
+                    x: { ticks:{font:{size:8}}, grid:{display:false} }
+                }
+            }
+        });
+        chartRegistry['contribucionChart'] = contribucionChart;
+    }
+
+    function setABCFilter(clase) {
+        abcFilter = clase;
+        document.querySelectorAll('.abc-filter-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.abc === clase));
+        renderABC();
+    }
+
+    function renderABC() {
+        const abcData = clasificarABC(dataFiltrada);
+        const totalPos = dataFiltrada.reduce((s,i)=>s+Math.max(i.utilidad,0),0);
+        const filtered = abcFilter === 'all' ? abcData : abcData.filter(i => i.abc === abcFilter);
+        const cont = document.getElementById('abcList');
+        cont.innerHTML = '';
+        filtered.slice(0, 30).forEach(item => {
+            const badgeClass = item.abc === 'A' ? 'badge-a' : item.abc === 'B' ? 'badge-b' : 'badge-c';
+            const pct = totalPos > 0 ? (Math.max(item.utilidad,0)/totalPos*100) : 0;
+            cont.innerHTML += `
+                <div class="flex items-center justify-between p-1.5 rounded hover:bg-slate-50 border border-slate-100">
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span class="${badgeClass} px-1.5 py-0.5 rounded text-[9px] font-extrabold shrink-0">${item.abc}</span>
+                        <span class="text-[11px] text-slate-700 truncate">${item.nombre}</span>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <div class="text-[10px] font-bold text-slate-800">${pct.toFixed(1)}%</div>
+                    </div>
+                </div>
+            `;
+        });
+        if (filtered.length === 0) {
+            cont.innerHTML = `<p class="text-[11px] text-slate-400 text-center py-4">Sin SKUs en categoría ${abcFilter}</p>`;
+        }
+    }
+
+    // ============================================================
+    // TABLA DETALLADA
+    // ============================================================
+    function renderTabla() {
+        const sortBy = document.getElementById('tableSort').value;
+        let list = [...dataFiltrada];
+        if (sortBy === 'utilidad') list.sort((a,b)=>b.utilidad-a.utilidad);
+        else if (sortBy === 'ingreso') list.sort((a,b)=>b.ingresos-a.ingresos);
+        else if (sortBy === 'margen') list.sort((a,b)=>b.margenPct-a.margenPct);
+        else if (sortBy === 'unidades') list.sort((a,b)=>b.unidades-a.unidades);
+        else if (sortBy === 'nombre') list.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+
+        const abcData = clasificarABC(list);
+        const abcMap = {};
+        abcData.forEach(i => abcMap[i.id] = i.abc);
+
+        const total = list.length;
+        const totalPages = Math.max(1, Math.ceil(total / pageSize));
+        if (currentPage > totalPages) currentPage = totalPages;
+        const start = (currentPage - 1) * pageSize;
+        const pageItems = list.slice(start, start + pageSize);
+
+        const tbody = document.getElementById('productTableBody');
+        tbody.innerHTML = '';
+        pageItems.forEach((p, idx) => {
+            const abc = abcMap[p.id] || 'C';
+            const badgeClass = abc === 'A' ? 'badge-a' : abc === 'B' ? 'badge-b' : 'badge-c';
+            const estado = p.utilidad >= 0
+                ? `<span class="text-brand-700 bg-brand-50 px-1.5 py-0.5 rounded-full text-[9px] font-bold border border-brand-200">Rentable</span>`
+                : `<span class="text-accent-700 bg-accent-50 px-1.5 py-0.5 rounded-full text-[9px] font-bold border border-accent-200">Pérdida</span>`;
+
+            tbody.innerHTML += `
+                <tr class="hover:bg-brand-50/40 transition-colors">
+                    <td class="px-2 py-1.5 text-slate-500 font-medium">${start + idx + 1}</td>
+                    <td class="px-2 py-1.5">
+                        <div class="font-semibold text-slate-800">${p.nombre}</div>
+                        <div class="text-[9px] text-slate-400">${p.sku}${p.subcategoria ? ' · ' + p.subcategoria : ''}</div>
+                    </td>
+                    <td class="px-2 py-1.5 text-slate-600 text-[10px]">${p.empresa}</td>
+                    <td class="px-2 py-1.5 text-slate-600 text-[10px]">${p.categoria}</td>
+                    <td class="px-2 py-1.5 text-slate-600 text-[10px]">${p.planta}</td>
+                    <td class="px-2 py-1.5 text-right text-slate-700">${fmtMoney(p.precio)}</td>
+                    <td class="px-2 py-1.5 text-right text-slate-700">${fmtMoney(p.costo)}</td>
+                    <td class="px-2 py-1.5 text-right font-semibold ${p.margenUnit>=0?'text-brand-600':'text-accent-600'}">${fmtMoney(p.margenUnit)}</td>
+                    <td class="px-2 py-1.5 text-right font-bold ${p.margenPct>=30?'text-brand-600':p.margenPct>=15?'text-amber-600':'text-accent-600'}">${p.margenPct.toFixed(1)}%</td>
+                    <td class="px-2 py-1.5 text-right text-slate-700">${fmtNum(p.unidades)}</td>
+                    <td class="px-2 py-1.5 text-right text-slate-700">${fmtK(p.ingresos)}</td>
+                    <td class="px-2 py-1.5 text-right text-slate-700">${fmtK(p.costos)}</td>
+                    <td class="px-2 py-1.5 text-right font-bold ${p.utilidad>=0?'text-brand-600':'text-accent-600'}">${fmtK(p.utilidad)}</td>
+                    <td class="px-2 py-1.5 text-center"><span class="${badgeClass} px-1.5 py-0.5 rounded text-[9px] font-extrabold">${abc}</span></td>
+                    <td class="px-2 py-1.5 text-center">${estado}</td>
+                </tr>
+            `;
+        });
+
+        document.getElementById('footUnidades').textContent = fmtNum(list.reduce((s,i)=>s+i.unidades,0));
+        document.getElementById('footIngresos').textContent = fmtMoney(list.reduce((s,i)=>s+i.ingresos,0));
+        document.getElementById('footCostos').textContent = fmtMoney(list.reduce((s,i)=>s+i.costos,0));
+        document.getElementById('footUtilidad').textContent = fmtMoney(list.reduce((s,i)=>s+i.utilidad,0));
+
+        document.getElementById('pageInfo').textContent = total > 0 ? `Mostrando ${start + 1}–${Math.min(start + pageSize, total)} de ${total} SKUs` : 'Sin resultados';
+        document.getElementById('btnPrevPage').disabled = currentPage <= 1;
+        document.getElementById('btnNextPage').disabled = currentPage >= totalPages;
+
+        const pageCont = document.getElementById('pageNumbers');
+        pageCont.innerHTML = '';
+        const maxBtns = 5;
+        let startP = Math.max(1, currentPage - Math.floor(maxBtns/2));
+        let endP = Math.min(totalPages, startP + maxBtns - 1);
+        if (endP - startP < maxBtns - 1) startP = Math.max(1, endP - maxBtns + 1);
+        for (let p = startP; p <= endP; p++) {
+            pageCont.innerHTML += `<button onclick="goToPage(${p})" class="px-2 py-1 rounded border ${p===currentPage?'bg-brand-500 text-white border-brand-500':'bg-white border-slate-200 hover:bg-slate-100'} text-[10px] font-semibold">${p}</button>`;
+        }
+    }
+
+    function changePage(delta) { currentPage += delta; renderTabla(); }
+    function goToPage(p) { currentPage = p; renderTabla(); }
+
+    // ============================================================
+    // INSIGHTS
+    // ============================================================
+    function renderInsights() {
+        if (!dataFiltrada.length) {
+            document.getElementById('insightTitle').textContent = 'Sin datos para los filtros seleccionados';
+            document.getElementById('insightText').textContent = 'Ajusta los filtros para visualizar el análisis.';
+            document.getElementById('recomendaciones').innerHTML = '';
+            return;
+        }
+        const sorted = [...dataFiltrada].sort((a,b)=>b.margenPct-a.margenPct);
+        const top = sorted[0];
+        const worst = sorted[sorted.length-1];
+        const enPerdida = dataFiltrada.filter(p => p.utilidad < 0);
+        const top5 = [...dataFiltrada].sort((a,b)=>b.utilidad-a.utilidad).slice(0,5);
+        const top5Util = top5.reduce((s,i)=>s+Math.max(i.utilidad,0),0);
+        const totalPos = dataFiltrada.reduce((s,i)=>s+Math.max(i.utilidad,0),0);
+
+        document.getElementById('insightTitle').textContent = `Top 5 SKUs concentran ${totalPos>0?(top5Util/totalPos*100).toFixed(0):0}% del margen`;
+        document.getElementById('insightText').innerHTML =
+            `En el subconjunto analizado (<strong class="text-white">${dataFiltrada.length} SKUs</strong>), el producto <strong class="text-white">${top.nombre}</strong> lidera con margen de <strong class="text-accent-200">${top.margenPct.toFixed(1)}%</strong>. 
+            ${enPerdida.length > 0
+                ? `Se detectan <strong class="text-white">${enPerdida.length} SKU(s)</strong> con utilidad negativa: ${enPerdida.slice(0,3).map(p=>p.nombre).join(', ')}${enPerdida.length>3?'…':''}.`
+                : `Ningún SKU en pérdida. El de menor margen es ${worst.nombre} (${worst.margenPct.toFixed(1)}%).`}`;
+
+        const recs = [];
+        const abcData = clasificarABC(dataFiltrada);
+        const claseA = abcData.filter(i=>i.abc==='A');
+        const claseC = abcData.filter(i=>i.abc==='C');
+
+        recs.push({ icono:'fa-arrow-trend-up', color:'brand', titulo:'Priorizar SKUs Clase A',
+            texto:`${claseA.length} SKU(s) generan el 70% del margen. Asegurar stock, disponibilidad y foco comercial en: ${claseA.slice(0,4).map(p=>p.nombre).join(', ')}${claseA.length>4?'…':''}.` });
+        if (enPerdida.length > 0) recs.push({ icono:'fa-triangle-exclamation', color:'accent', titulo:'Revisar SKUs en pérdida',
+            texto:`${enPerdida.length} producto(s) con utilidad negativa. Evaluar ajuste de precio, renegociación o descontinuación.` });
+        if (claseC.length > 0) recs.push({ icono:'fa-scissors', color:'slate', titulo:'Optimizar cola del portafolio',
+            texto:`${claseC.length} SKU(s) aportan marginalmente. Considerar simplificación de SKUs, bundles o promociones cruzadas.` });
+        if (filtros.empresa || filtros.categoria || filtros.planta) {
+            const scopeTxt = [filtros.empresa, filtros.categoria, filtros.planta].filter(Boolean).join(' · ');
+            recs.push({ icono:'fa-crosshairs', color:'brand', titulo:`Enfoque activo: ${scopeTxt}`,
+                texto:`Este análisis está limitado al subconjunto filtrado. Comparar contra el global para detectar desviaciones de rentabilidad.` });
+        }
+        recs.push({ icono:'fa-handshake', color:'accent', titulo:'Negociación con proveedores',
+            texto:`Un ahorro del 3% en compras del subconjunto generaría ${fmtK(dataFiltrada.reduce((s,i)=>s+i.costos,0)*0.03)} adicionales al mes.` });
+
+        const colores = { brand:'bg-brand-50 border-brand-200 text-brand-700', accent:'bg-accent-50 border-accent-200 text-accent-700', slate:'bg-slate-50 border-slate-200 text-slate-700' };
+        document.getElementById('recomendaciones').innerHTML = recs.map(r=>`
+            <div class="flex items-start gap-2 p-2.5 rounded-md border ${colores[r.color]}">
+                <i class="fa-solid ${r.icono} mt-0.5 text-xs"></i>
+                <div>
+                    <p class="font-bold text-[11px]">${r.titulo}</p>
+                    <p class="text-[10px] mt-0.5 opacity-90">${r.texto}</p>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // ============================================================
+    // SIMULADOR
+    // ============================================================
+    function initSimulador() {
+        ['simPrecio','simCosto','simVolumen'].forEach(id => document.getElementById(id).addEventListener('input', renderSimulador));
+        renderSimulador();
+    }
+
+    function renderSimulador() {
+        const varP = parseFloat(document.getElementById('simPrecio').value);
+        const varC = parseFloat(document.getElementById('simCosto').value);
+        const varV = parseFloat(document.getElementById('simVolumen').value);
+        document.getElementById('lblPrecio').textContent = (varP>=0?'+':'')+varP+'%';
+        document.getElementById('lblCosto').textContent = (varC>=0?'+':'')+varC+'%';
+        document.getElementById('lblVolumen').textContent = (varV>=0?'+':'')+varV+'%';
+
+        let totalSim = 0;
+        dataFiltrada.forEach(p => {
+            const nP = p.precio * (1 + varP/100);
+            const nC = p.costo * (1 + varC/100);
+            const nU = p.unidades * (1 + varV/100);
+            totalSim += (nP - nC) * nU;
+        });
+
+        const baseUtil = dataFiltrada.reduce((s,i)=>s+i.utilidad,0);
+        const variacion = totalSim - baseUtil;
+        const variacionPct = baseUtil !== 0 ? (variacion/Math.abs(baseUtil))*100 : 0;
+
+        document.getElementById('simUtilidadBase').textContent = fmtK(baseUtil);
+        document.getElementById('simUtilidadNueva').textContent = fmtK(totalSim);
+        const varEl = document.getElementById('simVariacion');
+        varEl.textContent = (variacion>=0?'+':'')+fmtK(variacion)+` (${variacionPct>=0?'+':''}${variacionPct.toFixed(1)}%)`;
+        varEl.className = 'text-base font-extrabold ' + (variacion>=0?'text-brand-700':'text-accent-700');
+
+        const top15 = [...dataFiltrada].sort((a,b)=>b.utilidad-a.utilidad).slice(0,15);
+        const top15Margenes = top15.map(p => {
+            const nP = p.precio*(1+varP/100);
+            const nC = p.costo*(1+varC/100);
+            return nP > 0 ? ((nP-nC)/nP)*100 : 0;
+        });
+
+        const ctx = document.getElementById('simChart').getContext('2d');
+        if (simChart) simChart.destroy();
+        simChart = new Chart(ctx, {
+            type:'bar',
+            data:{
+                labels: top15.map(p=>p.nombre.length>14?p.nombre.substring(0,12)+'…':p.nombre),
+                datasets:[{ label:'Margen %', data: top15Margenes,
+                    backgroundColor: top15Margenes.map(m => m>=25?'#1D1D72':m>=10?'#7c7ccc':'#E31D2D'), borderRadius:3 }]
+            },
+            options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
+                scales:{ y:{beginAtZero:true, ticks:{callback:v=>v+'%',font:{size:9}}, grid:{color:'#f1f5f9'}}, x:{ticks:{font:{size:7}}, grid:{display:false}} } }
+        });
+        chartRegistry['simChart'] = simChart;
+    }
+
+    function resetSimulador() {
+        document.getElementById('simPrecio').value = 0;
+        document.getElementById('simCosto').value = 0;
+        document.getElementById('simVolumen').value = 0;
+        renderSimulador();
+    }
+
+    // ============================================================
+    // EXPORTAR CSV
+    // ============================================================
+    function exportCSV() {
+        const abcData = clasificarABC(dataFiltrada);
+        const abcMap = {}; abcData.forEach(i => abcMap[i.id] = i.abc);
+        const headers = ['SKU','Producto','Empresa','Categoría','Subcategoría','Planta','Precio','Costo','Margen Unit','Margen %','Unidades','Ingresos','Costos','Utilidad','ABC','Estado'];
+        const rows = dataFiltrada.map(p => [
+            p.sku, p.nombre, p.empresa, p.categoria, p.subcategoria, p.planta,
+            p.precio.toFixed(2), p.costo.toFixed(2), p.margenUnit.toFixed(2), p.margenPct.toFixed(2),
+            p.unidades, p.ingresos.toFixed(2), p.costos.toFixed(2), p.utilidad.toFixed(2),
+            abcMap[p.id]||'C', p.utilidad >= 0 ? 'Rentable' : 'Pérdida'
+        ]);
+        const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+        const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `rentabilidad_skus_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+    }
+
+    // ============================================================
+    // FOCUS MODE
+    // ============================================================
+    let focusChartInstance = null;
+    const chartRegistry = {};
+
+    function openFocus(event, btn) {
+        event.stopPropagation();
+        const host = btn.closest('.focus-host');
+        if (!host) return;
+
+        const title = host.dataset.focusTitle || 'Detalle';
+        document.getElementById('focusModalTitle').textContent = title;
+
+        const body = document.getElementById('focusModalBody');
+        body.innerHTML = '';
+
+        const isFullTable = host.dataset.focusFull === 'true';
+
+        if (isFullTable) {
+            renderFocusTable(body);
+            document.getElementById('focusModal').classList.add('open');
+            document.body.style.overflow = 'hidden';
+            return;
+        }
+
+        const clone = host.cloneNode(true);
+        clone.querySelectorAll('.focus-trigger').forEach(el => el.remove());
+        clone.classList.remove('focus-host');
+        clone.classList.add('focus-host-clone');
+
+        clone.querySelectorAll('.h-72, .h-80, .h-64, .h-56, .h-36, .h-40, .max-h-72, .max-h-56, .max-h-60, .max-h-64').forEach(el => {
+            el.style.maxHeight = 'none';
+            el.classList.remove('h-72','h-80','h-64','h-56','h-36','h-40','max-h-72','max-h-56','max-h-60','max-h-64');
+        });
+
+        const originalCanvas = host.querySelector('canvas');
+        const clonedCanvas = clone.querySelector('canvas');
+
+        if (originalCanvas && clonedCanvas) {
+            const originalChartKey = originalCanvas.id;
+            const clonedWrapper = clonedCanvas.parentElement;
+            clonedCanvas.id = originalCanvas.id + '_focus';
+            clonedWrapper.style.height = 'calc(100vh - 260px)';
+            clonedWrapper.style.minHeight = '380px';
+
+            body.appendChild(clone);
+
+            const origChart = chartRegistry[originalChartKey];
+            if (origChart) {
+                const newCtx = document.getElementById(originalCanvas.id + '_focus').getContext('2d');
+                const clonedData = {
+                    labels: origChart.config.data.labels ? [...origChart.config.data.labels] : undefined,
+                    datasets: origChart.config.data.datasets.map(ds => ({
+                        ...ds,
+                        data: ds.data.map(d => typeof d === 'object' ? { ...d } : d),
+                        backgroundColor: Array.isArray(ds.backgroundColor) ? [...ds.backgroundColor] : ds.backgroundColor,
+                        borderColor: Array.isArray(ds.borderColor) ? [...ds.borderColor] : ds.borderColor,
+                    }))
+                };
+                const clonedOptions = deepCloneOptions(origChart.config.options);
+
+                const newChart = new Chart(newCtx, {
+                    type: origChart.config.type,
+                    data: clonedData,
+                    options: clonedOptions
+                });
+                newChart.update();
+                focusChartInstance = newChart;
+            }
+        } else {
+            body.appendChild(clone);
+        }
+
+        document.getElementById('focusModal').classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function deepCloneOptions(obj) {
+        if (obj === null || typeof obj !== 'object') return obj;
+        if (Array.isArray(obj)) return obj.map(deepCloneOptions);
+        const cloned = {};
+        for (const key in obj) {
+            if (typeof obj[key] === 'function') {
+                cloned[key] = obj[key];
+            } else if (obj[key] && typeof obj[key] === 'object') {
+                cloned[key] = deepCloneOptions(obj[key]);
+            } else {
+                cloned[key] = obj[key];
+            }
+        }
+        return cloned;
+    }
+
+    function renderFocusTable(container) {
+        const sortBy = document.getElementById('tableSort').value;
+        let list = [...dataFiltrada];
+        if (sortBy === 'utilidad') list.sort((a,b)=>b.utilidad-a.utilidad);
+        else if (sortBy === 'ingreso') list.sort((a,b)=>b.ingresos-a.ingresos);
+        else if (sortBy === 'margen') list.sort((a,b)=>b.margenPct-a.margenPct);
+        else if (sortBy === 'unidades') list.sort((a,b)=>b.unidades-a.unidades);
+        else if (sortBy === 'nombre') list.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+
+        const abcData = clasificarABC(list);
+        const abcMap = {};
+        abcData.forEach(i => abcMap[i.id] = i.abc);
+
+        let rowsHtml = '';
+        list.forEach((p, idx) => {
+            const abc = abcMap[p.id] || 'C';
+            const badgeClass = abc === 'A' ? 'badge-a' : abc === 'B' ? 'badge-b' : 'badge-c';
+            const estado = p.utilidad >= 0
+                ? `<span class="text-brand-700 bg-brand-50 px-1.5 py-0.5 rounded-full text-[10px] font-bold border border-brand-200">Rentable</span>`
+                : `<span class="text-accent-700 bg-accent-50 px-1.5 py-0.5 rounded-full text-[10px] font-bold border border-accent-200">Pérdida</span>`;
+
+            rowsHtml += `
+                <tr class="hover:bg-brand-50/40 transition-colors border-b border-slate-100">
+                    <td class="px-2 py-2 text-slate-500 font-medium">${idx + 1}</td>
+                    <td class="px-2 py-2">
+                        <div class="font-semibold text-slate-800">${p.nombre}</div>
+                        <div class="text-[10px] text-slate-400">${p.sku}${p.subcategoria ? ' · ' + p.subcategoria : ''}</div>
+                    </td>
+                    <td class="px-2 py-2 text-slate-600">${p.empresa}</td>
+                    <td class="px-2 py-2 text-slate-600">${p.categoria}</td>
+                    <td class="px-2 py-2 text-slate-600">${p.planta}</td>
+                    <td class="px-2 py-2 text-right text-slate-700">${fmtMoney(p.precio)}</td>
+                    <td class="px-2 py-2 text-right text-slate-700">${fmtMoney(p.costo)}</td>
+                    <td class="px-2 py-2 text-right font-semibold ${p.margenUnit>=0?'text-brand-600':'text-accent-600'}">${fmtMoney(p.margenUnit)}</td>
+                    <td class="px-2 py-2 text-right font-bold ${p.margenPct>=30?'text-brand-600':p.margenPct>=15?'text-amber-600':'text-accent-600'}">${p.margenPct.toFixed(1)}%</td>
+                    <td class="px-2 py-2 text-right text-slate-700">${fmtNum(p.unidades)}</td>
+                    <td class="px-2 py-2 text-right text-slate-700">${fmtK(p.ingresos)}</td>
+                    <td class="px-2 py-2 text-right text-slate-700">${fmtK(p.costos)}</td>
+                    <td class="px-2 py-2 text-right font-bold ${p.utilidad>=0?'text-brand-600':'text-accent-600'}">${fmtK(p.utilidad)}</td>
+                    <td class="px-2 py-2 text-center"><span class="${badgeClass} px-1.5 py-0.5 rounded text-[10px] font-extrabold">${abc}</span></td>
+                    <td class="px-2 py-2 text-center">${estado}</td>
+                </tr>
+            `;
+        });
+
+        const totalU = list.reduce((s,i)=>s+i.unidades,0);
+        const totalI = list.reduce((s,i)=>s+i.ingresos,0);
+        const totalC = list.reduce((s,i)=>s+i.costos,0);
+        const totalUt = totalI - totalC;
+
+        container.innerHTML = `
+            <div class="bg-white rounded-lg border border-slate-200 overflow-hidden h-full flex flex-col">
+                <div class="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
+                    <div>
+                        <p class="text-[12px] font-bold text-slate-800">Total de SKUs: ${list.length}</p>
+                        <p class="text-[10px] text-slate-500">Listado completo · Ordenado por ${sortBy}</p>
+                    </div>
+                    <div class="flex items-center gap-3 text-[11px]">
+                        <span class="text-slate-500">Ingresos: <strong class="text-slate-800">${fmtK(totalI)}</strong></span>
+                        <span class="text-slate-500">Utilidad: <strong class="${totalUt>=0?'text-brand-600':'text-accent-600'}">${fmtK(totalUt)}</strong></span>
+                    </div>
+                </div>
+                <div class="focus-table-scroll flex-1">
+                    <table class="w-full">
+                        <thead class="bg-brand-500 text-white uppercase text-[10px] tracking-wider">
+                            <tr>
+                                <th class="px-2 py-2.5 text-left font-bold">#</th>
+                                <th class="px-2 py-2.5 text-left font-bold">SKU / Producto</th>
+                                <th class="px-2 py-2.5 text-left font-bold">Empresa</th>
+                                <th class="px-2 py-2.5 text-left font-bold">Categoría</th>
+                                <th class="px-2 py-2.5 text-left font-bold">Planta</th>
+                                <th class="px-2 py-2.5 text-right font-bold">P. Venta</th>
+                                <th class="px-2 py-2.5 text-right font-bold">Costo U.</th>
+                                <th class="px-2 py-2.5 text-right font-bold">M. Unit.</th>
+                                <th class="px-2 py-2.5 text-right font-bold">Margen %</th>
+                                <th class="px-2 py-2.5 text-right font-bold">Unid.</th>
+                                <th class="px-2 py-2.5 text-right font-bold">Ingresos</th>
+                                <th class="px-2 py-2.5 text-right font-bold">Costo Total</th>
+                                <th class="px-2 py-2.5 text-right font-bold">Utilidad</th>
+                                <th class="px-2 py-2.5 text-center font-bold">ABC</th>
+                                <th class="px-2 py-2.5 text-center font-bold">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">${rowsHtml}</tbody>
+                        <tfoot class="bg-brand-700 text-white font-bold text-[11px] sticky bottom-0">
+                            <tr>
+                                <td colspan="9" class="px-2 py-2.5 text-right">TOTALES →</td>
+                                <td class="px-2 py-2.5 text-right">${fmtNum(totalU)}</td>
+                                <td class="px-2 py-2.5 text-right">${fmtMoney(totalI)}</td>
+                                <td class="px-2 py-2.5 text-right">${fmtMoney(totalC)}</td>
+                                <td class="px-2 py-2.5 text-right text-accent-300">${fmtMoney(totalUt)}</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    function closeFocus() {
+        document.getElementById('focusModal').classList.remove('open');
+        document.body.style.overflow = '';
+        if (focusChartInstance) {
+            try { focusChartInstance.destroy(); } catch(e) {}
+            focusChartInstance = null;
+        }
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            if (document.getElementById('focusModal').classList.contains('open')) closeFocus();
+            if (document.getElementById('importModal').classList.contains('open')) cerrarImportador();
+        }
+    });
+
+    // ============================================================
+    // EVENTOS DE IMPORTACIÓN
+    // ============================================================
+    function setupImportador() {
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        fileInput.addEventListener('change', e => {
+            if (e.target.files.length > 0) procesarArchivo(e.target.files[0]);
+        });
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', e => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) procesarArchivo(e.dataTransfer.files[0]);
+        });
+    }
+
+    // ============================================================
+    // INICIALIZACIÓN
+    // ============================================================
+    document.getElementById('tableSort').addEventListener('change', () => { currentPage = 1; renderTabla(); });
+    document.getElementById('tablePageSize').addEventListener('change', e => { pageSize = parseInt(e.target.value); currentPage = 1; renderTabla(); });
+
+    // Arranque: cargar datos de ejemplo
+    productos = generarDatosEjemplo();
+    initFiltros();
+    initSimulador();
+    setupImportador();
+    reconstruirFiltros();
+    aplicarFiltros();
+    </script>
+</body>
+</html>
